@@ -8,12 +8,24 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   scrape:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      # ゆるバース2026は10/3-4の決選投票で終了。最終結果の反映を見込んで 10/15 まで動かし、以降は自動停止する
+      - name: Check end date
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "$(TZ=Asia/Tokyo date +%Y%m%d)" -gt 20261015 ]; then
+            echo "開催期間終了のためワークフローを無効化します"
+            gh workflow disable daily-scrape -R ${{ github.repository }}
+            exit 1
+          fi
 
       - name: Scrape and build
         run: |
