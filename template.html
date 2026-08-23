@@ -1,0 +1,608 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ゆるバースウォッチ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800&display=swap">
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7;
+  --surface: #fcfcfb;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #898781;
+  --grid: #e1e0d9;
+  --baseline: #c3c2b7;
+  --border: rgba(11, 11, 11, 0.10);
+  --accent: #2a78d6;
+  --accent-soft: rgba(42, 120, 214, 0.10);
+  --up: #006300;
+  --up-soft: rgba(12, 163, 12, 0.12);
+  --down: #d03b3b;
+  --down-soft: rgba(208, 59, 59, 0.10);
+  --gold: #b98300;
+  --star: #eda100;
+  --tooltip-bg: #0b0b0b;
+  --tooltip-ink: #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --ink: #ffffff;
+    --ink-2: #c3c2b7;
+    --muted: #898781;
+    --grid: #2c2c2a;
+    --baseline: #383835;
+    --border: rgba(255, 255, 255, 0.10);
+    --accent: #3987e5;
+    --accent-soft: rgba(57, 135, 229, 0.16);
+    --up: #0ca30c;
+    --up-soft: rgba(12, 163, 12, 0.18);
+    --down: #e66767;
+    --down-soft: rgba(230, 103, 103, 0.14);
+    --gold: #eda100;
+    --star: #eda100;
+    --tooltip-bg: #fcfcfb;
+    --tooltip-ink: #0b0b0b;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d;
+  --surface: #1a1a19;
+  --ink: #ffffff;
+  --ink-2: #c3c2b7;
+  --muted: #898781;
+  --grid: #2c2c2a;
+  --baseline: #383835;
+  --border: rgba(255, 255, 255, 0.10);
+  --accent: #3987e5;
+  --accent-soft: rgba(57, 135, 229, 0.16);
+  --up: #0ca30c;
+  --up-soft: rgba(12, 163, 12, 0.18);
+  --down: #e66767;
+  --down-soft: rgba(230, 103, 103, 0.14);
+  --gold: #eda100;
+  --star: #eda100;
+  --tooltip-bg: #fcfcfb;
+  --tooltip-ink: #0b0b0b;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--page);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, "Hiragino Kaku Gothic ProN", "Segoe UI", sans-serif;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px 64px; }
+
+header.site { padding: 28px 0 8px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px; }
+h1 {
+  font-family: "M PLUS Rounded 1c", "Hiragino Maru Gothic ProN", system-ui, sans-serif;
+  font-weight: 800; font-size: 1.7rem; margin: 0; letter-spacing: 0.01em;
+}
+h1 .crown { color: var(--gold); }
+.subtitle { color: var(--ink-2); font-size: 0.86rem; }
+.subtitle a { color: var(--accent); text-decoration: none; }
+.subtitle a:hover { text-decoration: underline; }
+
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; margin: 16px 0 20px; }
+.tile {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+  padding: 12px 16px 10px; min-width: 0;
+}
+.tile .lbl { font-size: 0.7rem; letter-spacing: 0.08em; color: var(--muted); text-transform: uppercase; }
+.tile .val {
+  font-family: "M PLUS Rounded 1c", system-ui, sans-serif;
+  font-weight: 800; font-size: 1.25rem; line-height: 1.3;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.tile .sub { font-size: 0.78rem; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile .sub .pos { color: var(--up); font-weight: 700; }
+
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 12px; }
+.controls input[type="search"] {
+  flex: 1 1 220px; min-width: 180px;
+  background: var(--surface); color: var(--ink);
+  border: 1px solid var(--border); border-radius: 999px;
+  padding: 8px 16px; font-size: 0.92rem; font-family: inherit;
+}
+.controls input[type="search"]:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
+.chips { display: flex; gap: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 3px; }
+.chip {
+  border: 0; background: transparent; color: var(--ink-2); font-family: inherit;
+  font-size: 0.82rem; font-weight: 600; padding: 5px 12px; border-radius: 999px; cursor: pointer;
+}
+.chip[aria-pressed="true"] { background: var(--accent); color: #fff; }
+.chip:not([aria-pressed="true"]):hover { background: var(--accent-soft); }
+.chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.tablecard { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+.tscroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; min-width: 720px; }
+thead th {
+  position: sticky; top: 0; background: var(--surface); z-index: 2;
+  font-size: 0.72rem; letter-spacing: 0.06em; color: var(--muted); font-weight: 600;
+  text-align: left; padding: 10px 10px 8px; border-bottom: 1px solid var(--grid); white-space: nowrap;
+}
+thead th.num, td.num { text-align: right; }
+tbody td { padding: 8px 10px; border-bottom: 1px solid var(--grid); vertical-align: middle; }
+tbody tr:last-child td { border-bottom: 0; }
+tbody tr { cursor: pointer; }
+tbody tr:hover { background: var(--accent-soft); }
+tbody tr:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+td.rank { font-family: "M PLUS Rounded 1c", system-ui, sans-serif; font-weight: 800; font-size: 1.05rem; width: 3.2em; text-align: right; font-variant-numeric: tabular-nums; }
+tr.top3 td.rank { color: var(--gold); }
+.mv { display: inline-block; min-width: 3.2em; font-size: 0.78rem; font-weight: 700; font-variant-numeric: tabular-nums; border-radius: 999px; padding: 1px 8px; text-align: center; }
+.mv.up { color: var(--up); background: var(--up-soft); }
+.mv.down { color: var(--down); background: var(--down-soft); }
+.mv.flat { color: var(--muted); }
+.mv.new { color: var(--accent); background: var(--accent-soft); }
+
+.cname { font-weight: 700; }
+.corg { font-size: 0.76rem; color: var(--ink-2); }
+td.pref { font-size: 0.8rem; color: var(--ink-2); white-space: nowrap; }
+td.pts { font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
+td.delta { white-space: nowrap; }
+.dval { font-variant-numeric: tabular-nums; font-size: 0.85rem; font-weight: 700; color: var(--up); display: inline-block; min-width: 4.5em; text-align: right; }
+.dval.zero { color: var(--muted); font-weight: 500; }
+.dbar { display: inline-block; height: 8px; border-radius: 4px; background: var(--accent); vertical-align: middle; margin-left: 8px; min-width: 0; }
+td.spark { width: 110px; }
+td.spark svg { display: block; }
+.star-btn { border: 0; background: transparent; cursor: pointer; font-size: 1rem; color: var(--baseline); padding: 4px 6px; border-radius: 8px; line-height: 1; }
+.star-btn.on { color: var(--star); }
+.star-btn:hover { background: var(--accent-soft); }
+.star-btn:focus-visible { outline: 2px solid var(--accent); }
+
+.note { color: var(--muted); font-size: 0.76rem; margin-top: 14px; }
+.note p { margin: 2px 0; }
+
+.empty { padding: 32px; text-align: center; color: var(--muted); }
+
+/* ---- 詳細パネル ---- */
+.overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+  display: none; z-index: 50;
+}
+.overlay.open { display: block; }
+.panel {
+  position: fixed; top: 0; right: 0; bottom: 0; width: min(560px, 100vw);
+  background: var(--page); border-left: 1px solid var(--border);
+  z-index: 51; display: none; overflow-y: auto; padding: 20px 20px 40px;
+}
+.panel.open { display: block; }
+.panel .close {
+  position: absolute; top: 14px; right: 14px;
+  border: 1px solid var(--border); background: var(--surface); color: var(--ink-2);
+  border-radius: 999px; width: 34px; height: 34px; font-size: 1rem; cursor: pointer;
+}
+.panel h2 { font-family: "M PLUS Rounded 1c", system-ui, sans-serif; font-weight: 800; margin: 4px 0 0; font-size: 1.35rem; padding-right: 44px; }
+.panel .meta { color: var(--ink-2); font-size: 0.84rem; margin-bottom: 4px; }
+.panel .meta a { color: var(--accent); text-decoration: none; }
+.panel .meta a:hover { text-decoration: underline; }
+.pstats { display: flex; gap: 10px; margin: 12px 0 4px; flex-wrap: wrap; }
+.pstat { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 8px 14px; }
+.pstat .lbl { font-size: 0.68rem; letter-spacing: 0.07em; color: var(--muted); }
+.pstat .val { font-family: "M PLUS Rounded 1c", system-ui, sans-serif; font-weight: 800; font-size: 1.15rem; font-variant-numeric: tabular-nums; }
+.chartcard { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px 8px; margin-top: 12px; }
+.chartcard h3 { margin: 0 0 4px; font-size: 0.8rem; font-weight: 600; color: var(--ink-2); letter-spacing: 0.04em; }
+.chartcard .cwrap { position: relative; }
+.chartcard svg { display: block; width: 100%; height: auto; }
+
+.tip {
+  position: absolute; pointer-events: none; z-index: 60;
+  background: var(--tooltip-bg); color: var(--tooltip-ink);
+  font-size: 0.75rem; line-height: 1.4; padding: 5px 9px; border-radius: 8px;
+  white-space: nowrap; transform: translate(-50%, calc(-100% - 10px));
+  display: none;
+}
+.tip b { font-variant-numeric: tabular-nums; }
+
+@media (max-width: 640px) {
+  h1 { font-size: 1.35rem; }
+  .tiles { grid-template-columns: repeat(2, 1fr); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .panel.open { animation: slidein 0.18s ease-out; }
+  @keyframes slidein { from { transform: translateX(24px); opacity: 0.5; } to { transform: none; opacity: 1; } }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="site">
+    <h1><span class="crown">👑</span> ゆるバースウォッチ</h1>
+    <span class="subtitle">ゆるバース（<a href="https://yurugp.jp/vote" target="_blank" rel="noopener">yurugp.jp</a>）非公式ランキングトラッカー</span>
+  </header>
+
+  <section class="tiles" id="tiles"></section>
+
+  <div class="controls">
+    <input id="q" type="search" placeholder="キャラ名・所属・都道府県で検索" aria-label="検索">
+    <div class="chips" role="group" aria-label="表示件数">
+      <button class="chip" data-limit="50" aria-pressed="true">上位50</button>
+      <button class="chip" data-limit="100" aria-pressed="false">上位100</button>
+      <button class="chip" data-limit="0" aria-pressed="false">全キャラ</button>
+    </div>
+    <div class="chips" role="group" aria-label="並び順">
+      <button class="chip" data-sort="rank" aria-pressed="true">順位順</button>
+      <button class="chip" data-sort="delta" aria-pressed="false">獲得PT順</button>
+    </div>
+    <div class="chips" role="group" aria-label="お気に入り">
+      <button class="chip" id="favonly" aria-pressed="false">★のみ</button>
+    </div>
+  </div>
+
+  <div class="tablecard">
+    <div class="tscroll">
+      <table id="tbl" aria-label="ゆるバースランキング">
+        <thead>
+          <tr>
+            <th class="num">順位</th>
+            <th>変動</th>
+            <th>キャラクター</th>
+            <th>都道府県</th>
+            <th class="num">総ポイント</th>
+            <th>前回比</th>
+            <th>推移</th>
+            <th aria-label="お気に入り">★</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="empty" id="empty" hidden>該当するキャラクターがいません</div>
+  </div>
+
+  <div class="note">
+    <p>※ 本サイトはゆるバース公式とは無関係の非公式トラッカーです。データは yurugp.jp の公表ランキングを1日1回記録したものです。</p>
+    <p>※ ゆるナビ投票は平日の正午頃に前日分まで反映、ふるさと応援投票は毎週月曜に反映されるため、「前回比」は前回記録時点との差分です（月曜は合算分が大きく出ます）。</p>
+    <p>※ 順位の変動・獲得ポイントは記録開始日以降のデータから算出しています。</p>
+  </div>
+</div>
+
+<div class="overlay" id="overlay"></div>
+<aside class="panel" id="panel" aria-label="キャラクター詳細">
+  <button class="close" id="pclose" aria-label="閉じる">✕</button>
+  <div id="pbody"></div>
+</aside>
+<div class="tip" id="tip"></div>
+
+<script id="data" type="application/json">/*__DATA__*/</script>
+<script>
+"use strict";
+const D = JSON.parse(document.getElementById("data").textContent);
+const DATES = D.dates;
+const LAST = DATES.length - 1;
+const PREV = LAST - 1;
+const fmt = n => n == null ? "—" : n.toLocaleString("ja-JP");
+const fmtDate = d => { const [y, m, dd] = d.split("-"); return `${+m}/${+dd}`; };
+const fmtDateFull = d => { const [y, m, dd] = d.split("-"); return `${y}年${+m}月${+dd}日`; };
+
+// 派生値
+for (const c of D.chars) {
+  c.cur = c.pts[LAST];
+  c.curRk = c.rks[LAST];
+  c.prevPts = PREV >= 0 ? c.pts[PREV] : null;
+  c.prevRk = PREV >= 0 ? c.rks[PREV] : null;
+  c.dPts = (c.prevPts != null) ? c.cur - c.prevPts : null;
+  c.dRk = (c.prevRk != null) ? c.prevRk - c.curRk : null; // 正 = 上昇
+  c.isNew = PREV >= 0 && c.prevPts == null;
+}
+const maxDelta = Math.max(1, ...D.chars.map(c => c.dPts || 0));
+
+// お気に入り (localStorage)
+let favs = new Set();
+try { favs = new Set(JSON.parse(localStorage.getItem("yv-favs") || "[]")); } catch (e) {}
+const saveFavs = () => { try { localStorage.setItem("yv-favs", JSON.stringify([...favs])); } catch (e) {} };
+
+// ---- サマリータイル ----
+function renderTiles() {
+  const first = D.chars.find(c => c.curRk === 1);
+  const topGainer = PREV >= 0
+    ? D.chars.slice().sort((a, b) => (b.dPts || 0) - (a.dPts || 0))[0]
+    : null;
+  const tiles = [
+    { lbl: "集計日", val: (() => { const [y, m, dd] = DATES[LAST].split("-"); return `${+m}月${+dd}日`; })(), sub: DATES.length > 1 ? `${DATES[LAST].slice(0, 4)}年・記録 ${DATES.length} 日分` : `${DATES[LAST].slice(0, 4)}年・記録開始日` },
+    { lbl: "現在の首位", val: first ? first.n : "—", sub: first ? `${fmt(first.cur)} PT` : "" },
+    PREV >= 0 && topGainer && topGainer.dPts > 0
+      ? { lbl: "前回比トップ", val: topGainer.n, sub: `<span class="pos">+${fmt(topGainer.dPts)} PT</span>` }
+      : { lbl: "前回比トップ", val: "集計中", sub: "翌日以降に表示されます" },
+    { lbl: "参加キャラクター", val: `${D.chars.length} 体`, sub: "エントリー全体" },
+  ];
+  document.getElementById("tiles").innerHTML = tiles.map(t =>
+    `<div class="tile"><div class="lbl">${t.lbl}</div><div class="val">${t.val}</div><div class="sub">${t.sub || ""}</div></div>`
+  ).join("");
+}
+
+// ---- スパークライン (直近10回の累計PT) ----
+function sparkline(c) {
+  const w = 100, h = 26, pad = 2;
+  const n0 = Math.max(0, DATES.length - 10);
+  const xs = [], ys = [];
+  for (let i = n0; i <= LAST; i++) if (c.pts[i] != null) { xs.push(i); ys.push(c.pts[i]); }
+  if (ys.length === 0) return "";
+  if (ys.length === 1) {
+    return `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true"><circle cx="${w - pad - 2}" cy="${h / 2}" r="3" fill="var(--accent)"/></svg>`;
+  }
+  const min = Math.min(...ys), max = Math.max(...ys), span = Math.max(1, max - min);
+  const X = i => pad + (xs.indexOf(i) / (xs.length - 1)) * (w - pad * 2);
+  const Y = v => h - pad - ((v - min) / span) * (h - pad * 2);
+  let dd = "";
+  xs.forEach((xi, k) => { dd += (k ? "L" : "M") + X(xi).toFixed(1) + " " + Y(ys[k]).toFixed(1); });
+  const lastX = X(xs[xs.length - 1]), lastY = Y(ys[ys.length - 1]);
+  return `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true">
+    <path d="${dd}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="${lastX}" cy="${lastY}" r="3" fill="var(--accent)"/></svg>`;
+}
+
+// ---- テーブル ----
+let limit = 50, sortBy = "rank", favOnly = false, query = "";
+
+function movementBadge(c) {
+  if (c.isNew) return `<span class="mv new">NEW</span>`;
+  if (c.dRk == null) return `<span class="mv flat">—</span>`;
+  if (c.dRk > 0) return `<span class="mv up">▲${c.dRk}</span>`;
+  if (c.dRk < 0) return `<span class="mv down">▼${-c.dRk}</span>`;
+  return `<span class="mv flat">＝</span>`;
+}
+
+function renderTable() {
+  let rows = D.chars.slice();
+  if (query) {
+    const q = query.toLowerCase();
+    rows = rows.filter(c => (c.n + c.o + c.p).toLowerCase().includes(q));
+  }
+  if (favOnly) rows = rows.filter(c => favs.has(c.id));
+  if (sortBy === "delta") rows.sort((a, b) => (b.dPts || 0) - (a.dPts || 0) || a.curRk - b.curRk);
+  else rows.sort((a, b) => a.curRk - b.curRk);
+  if (limit > 0) rows = rows.slice(0, limit);
+
+  const tbody = document.getElementById("tbody");
+  document.getElementById("empty").hidden = rows.length > 0;
+  tbody.innerHTML = rows.map(c => {
+    const dp = c.dPts;
+    const barW = dp > 0 ? Math.max(3, Math.round((dp / maxDelta) * 64)) : 0;
+    const deltaCell = dp == null
+      ? `<span class="dval zero">—</span>`
+      : dp === 0
+        ? `<span class="dval zero">±0</span>`
+        : `<span class="dval">+${fmt(dp)}</span><span class="dbar" style="width:${barW}px"></span>`;
+    return `<tr data-id="${c.id}" tabindex="0" class="${c.curRk <= 3 ? "top3" : ""}" aria-label="${c.n} 詳細を表示">
+      <td class="rank num">${c.curRk}</td>
+      <td>${movementBadge(c)}</td>
+      <td><div class="cname">${c.n}</div><div class="corg">${c.o || ""}</div></td>
+      <td class="pref">${c.p || ""}</td>
+      <td class="pts num">${fmt(c.cur)} <span style="color:var(--muted);font-size:0.72rem;font-weight:500">PT</span></td>
+      <td class="delta">${deltaCell}</td>
+      <td class="spark">${sparkline(c)}</td>
+      <td><button class="star-btn ${favs.has(c.id) ? "on" : ""}" data-fav="${c.id}" aria-label="お気に入り切替" aria-pressed="${favs.has(c.id)}">${favs.has(c.id) ? "★" : "☆"}</button></td>
+    </tr>`;
+  }).join("");
+}
+
+// ---- 詳細パネルのチャート ----
+const tip = document.getElementById("tip");
+function showTip(html, x, y) {
+  tip.innerHTML = html;
+  tip.style.display = "block";
+  tip.style.left = x + "px";
+  tip.style.top = y + "px";
+}
+function hideTip() { tip.style.display = "none"; }
+
+function lineChart(id, series, opts) {
+  // series: [{i, v}] — i は日付 index
+  const W = 520, H = 180, L = 52, R = 14, T = 12, B = 26;
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (series.length === 0) { el.innerHTML = `<div class="empty">データなし</div>`; return; }
+  const vs = series.map(p => p.v);
+  let min = Math.min(...vs), max = Math.max(...vs);
+  if (opts.invert) { const pad = Math.max(1, Math.round((max - min) * 0.15)); min = Math.max(1, min - pad); max = max + pad; }
+  else { const pad = Math.max(1, (max - min) * 0.12); max += pad; min = Math.max(0, min - pad); }
+  if (min === max) { max = min + 1; }
+  const X = k => series.length === 1 ? (L + (W - L - R) / 2) : L + (k / (series.length - 1)) * (W - L - R);
+  const Yv = v => {
+    const t = (v - min) / (max - min);
+    return opts.invert ? T + t * (H - T - B) : H - B - t * (H - T - B);
+  };
+  // グリッド: 4本（整数目盛りは重複を除去）
+  let grid = "", labels = "";
+  const tickVals = [];
+  for (let g = 0; g <= 3; g++) {
+    const v = min + ((max - min) * g) / 3;
+    const lv = opts.integer ? Math.round(v) : v;
+    if (opts.integer && tickVals.includes(lv)) continue;
+    tickVals.push(lv);
+  }
+  for (const lv of tickVals) {
+    const y = Yv(lv);
+    grid += `<line x1="${L}" x2="${W - R}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}" stroke="var(--grid)" stroke-width="1"/>`;
+    labels += `<text x="${L - 8}" y="${(y + 4).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--muted)" style="font-variant-numeric:tabular-nums">${opts.rankLabel ? lv + "位" : fmt(Math.round(lv))}</text>`;
+  }
+  // X 軸ラベル: 最大6個
+  const step = Math.max(1, Math.ceil(series.length / 6));
+  let xlabels = "";
+  series.forEach((p, k) => {
+    if (k % step === 0 || k === series.length - 1)
+      xlabels += `<text x="${X(k).toFixed(1)}" y="${H - 8}" text-anchor="middle" font-size="10" fill="var(--muted)">${fmtDate(DATES[p.i])}</text>`;
+  });
+  let dd = "";
+  series.forEach((p, k) => { dd += (k ? "L" : "M") + X(k).toFixed(1) + " " + Yv(p.v).toFixed(1); });
+  const endX = X(series.length - 1), endY = Yv(series[series.length - 1].v);
+  const dots = series.length === 1 ? `<circle cx="${X(0)}" cy="${Yv(series[0].v)}" r="4" fill="var(--accent)"/>` : `<circle cx="${endX}" cy="${endY}" r="4" fill="var(--accent)"/>`;
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${opts.label}">
+    ${grid}${labels}${xlabels}
+    <line x1="${L}" x2="${W - R}" y1="${(opts.invert ? T : H - B).toFixed(1)}" y2="${(opts.invert ? T : H - B).toFixed(1)}" stroke="var(--baseline)" stroke-width="1"/>
+    ${series.length > 1 ? `<path d="${dd}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>` : ""}
+    ${dots}
+    <line id="${id}-cross" y1="${T}" y2="${H - B}" stroke="var(--baseline)" stroke-width="1" style="display:none"/>
+    <circle id="${id}-hover" r="4.5" fill="var(--accent)" stroke="var(--surface)" stroke-width="2" style="display:none"/>
+    <rect x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent" id="${id}-hit"/>
+  </svg>`;
+  const svg = el.querySelector("svg");
+  const hit = document.getElementById(id + "-hit");
+  const cross = document.getElementById(id + "-cross");
+  const hover = document.getElementById(id + "-hover");
+  const toPx = evt => {
+    const r = svg.getBoundingClientRect();
+    return ((evt.clientX - r.left) / r.width) * W;
+  };
+  hit.addEventListener("pointermove", evt => {
+    const px = toPx(evt);
+    let best = 0, bd = Infinity;
+    series.forEach((p, k) => { const d = Math.abs(X(k) - px); if (d < bd) { bd = d; best = k; } });
+    const p = series[best];
+    const cx = X(best), cy = Yv(p.v);
+    cross.setAttribute("x1", cx); cross.setAttribute("x2", cx); cross.style.display = "";
+    hover.setAttribute("cx", cx); hover.setAttribute("cy", cy); hover.style.display = "";
+    const r = svg.getBoundingClientRect();
+    showTip(`${fmtDateFull(DATES[p.i])}<br><b>${opts.rankLabel ? p.v + " 位" : fmt(p.v) + " PT"}</b>`,
+      r.left + (cx / W) * r.width + window.scrollX, r.top + (cy / H) * r.height + window.scrollY);
+  });
+  hit.addEventListener("pointerleave", () => { cross.style.display = "none"; hover.style.display = "none"; hideTip(); });
+}
+
+function barChart(id, series) {
+  // series: [{i, v}] 日次獲得
+  const W = 520, H = 160, L = 52, R = 14, T = 12, B = 26;
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (series.length === 0) {
+    el.innerHTML = `<div class="empty" style="padding:18px">2日分以上の記録が貯まると表示されます</div>`;
+    return;
+  }
+  const max = Math.max(1, ...series.map(p => p.v));
+  const n = series.length;
+  const slot = (W - L - R) / n;
+  const bw = Math.max(3, Math.min(28, slot - 2));
+  const Y = v => H - B - (v / (max * 1.12)) * (H - T - B);
+  let grid = "", labels = "";
+  for (let g = 1; g <= 3; g++) {
+    const v = (max * 1.12 * g) / 3;
+    const y = Y(v);
+    grid += `<line x1="${L}" x2="${W - R}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}" stroke="var(--grid)" stroke-width="1"/>`;
+    labels += `<text x="${L - 8}" y="${y + 4}" text-anchor="end" font-size="10" fill="var(--muted)" style="font-variant-numeric:tabular-nums">${fmt(Math.round(v))}</text>`;
+  }
+  const step = Math.max(1, Math.ceil(n / 6));
+  let bars = "", xlabels = "";
+  series.forEach((p, k) => {
+    const x = L + k * slot + (slot - bw) / 2;
+    const y = Y(p.v), hh = Math.max(0, H - B - y);
+    bars += `<rect data-k="${k}" x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${hh.toFixed(1)}" rx="3" fill="var(--accent)"/>`;
+    if (k % step === 0 || k === n - 1)
+      xlabels += `<text x="${(x + bw / 2).toFixed(1)}" y="${H - 8}" text-anchor="middle" font-size="10" fill="var(--muted)">${fmtDate(DATES[p.i])}</text>`;
+  });
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="日次獲得ポイント">
+    ${grid}${labels}${xlabels}
+    <line x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}" stroke="var(--baseline)" stroke-width="1"/>
+    ${bars}
+  </svg>`;
+  const svg = el.querySelector("svg");
+  svg.querySelectorAll("rect[data-k]").forEach(rect => {
+    rect.addEventListener("pointerenter", () => {
+      const k = +rect.dataset.k, p = series[k];
+      const r = rect.getBoundingClientRect();
+      rect.setAttribute("fill", "var(--accent)");
+      rect.setAttribute("opacity", "0.8");
+      showTip(`${fmtDateFull(DATES[p.i])}<br><b>+${fmt(p.v)} PT</b>`,
+        r.left + r.width / 2 + window.scrollX, r.top + window.scrollY);
+    });
+    rect.addEventListener("pointerleave", () => { rect.removeAttribute("opacity"); hideTip(); });
+  });
+}
+
+// ---- 詳細パネル ----
+const overlay = document.getElementById("overlay");
+const panel = document.getElementById("panel");
+function openPanel(c) {
+  const pb = document.getElementById("pbody");
+  pb.innerHTML = `
+    <div class="meta">${c.p || ""}｜${c.o || ""}　エントリーNo.${c.e}</div>
+    <h2>${c.n}</h2>
+    <div class="meta"><a href="https://yurugp.jp/characters/${c.id}" target="_blank" rel="noopener">公式ページで投票する ↗</a></div>
+    <div class="pstats">
+      <div class="pstat"><div class="lbl">現在順位</div><div class="val">${c.curRk} 位</div></div>
+      <div class="pstat"><div class="lbl">総ポイント</div><div class="val">${fmt(c.cur)}</div></div>
+      <div class="pstat"><div class="lbl">前回比</div><div class="val">${c.dPts == null ? "—" : "+" + fmt(c.dPts)}</div></div>
+    </div>
+    <div class="chartcard"><h3>累計ポイント推移</h3><div class="cwrap" id="ch-pts"></div></div>
+    <div class="chartcard"><h3>日次獲得ポイント（前回比）</h3><div class="cwrap" id="ch-daily"></div></div>
+    <div class="chartcard"><h3>順位推移</h3><div class="cwrap" id="ch-rank"></div></div>`;
+  overlay.classList.add("open");
+  panel.classList.add("open");
+  const ptsSeries = [], rkSeries = [], daily = [];
+  for (let i = 0; i <= LAST; i++) {
+    if (c.pts[i] != null) {
+      ptsSeries.push({ i, v: c.pts[i] });
+      rkSeries.push({ i, v: c.rks[i] });
+      if (i > 0 && c.pts[i - 1] != null) daily.push({ i, v: Math.max(0, c.pts[i] - c.pts[i - 1]) });
+    }
+  }
+  lineChart("ch-pts", ptsSeries, { label: "累計ポイント推移" });
+  barChart("ch-daily", daily);
+  lineChart("ch-rank", rkSeries, { label: "順位推移", invert: true, integer: true, rankLabel: true });
+  panel.querySelector(".close").focus();
+}
+function closePanel() { overlay.classList.remove("open"); panel.classList.remove("open"); hideTip(); }
+overlay.addEventListener("click", closePanel);
+document.getElementById("pclose").addEventListener("click", closePanel);
+document.addEventListener("keydown", e => { if (e.key === "Escape") closePanel(); });
+
+// ---- イベント ----
+document.getElementById("q").addEventListener("input", e => { query = e.target.value.trim(); renderTable(); });
+document.querySelectorAll(".chip[data-limit]").forEach(b => b.addEventListener("click", () => {
+  document.querySelectorAll(".chip[data-limit]").forEach(x => x.setAttribute("aria-pressed", "false"));
+  b.setAttribute("aria-pressed", "true");
+  limit = +b.dataset.limit;
+  renderTable();
+}));
+document.querySelectorAll(".chip[data-sort]").forEach(b => b.addEventListener("click", () => {
+  document.querySelectorAll(".chip[data-sort]").forEach(x => x.setAttribute("aria-pressed", "false"));
+  b.setAttribute("aria-pressed", "true");
+  sortBy = b.dataset.sort;
+  renderTable();
+}));
+document.getElementById("favonly").addEventListener("click", e => {
+  favOnly = !favOnly;
+  e.currentTarget.setAttribute("aria-pressed", String(favOnly));
+  renderTable();
+});
+document.getElementById("tbody").addEventListener("click", e => {
+  const favBtn = e.target.closest("[data-fav]");
+  if (favBtn) {
+    const id = +favBtn.dataset.fav;
+    if (favs.has(id)) favs.delete(id); else favs.add(id);
+    saveFavs();
+    renderTable();
+    e.stopPropagation();
+    return;
+  }
+  const tr = e.target.closest("tr[data-id]");
+  if (tr) {
+    const c = D.chars.find(x => x.id === +tr.dataset.id);
+    if (c) openPanel(c);
+  }
+});
+document.getElementById("tbody").addEventListener("keydown", e => {
+  if (e.key === "Enter" || e.key === " ") {
+    const tr = e.target.closest("tr[data-id]");
+    if (tr) { e.preventDefault(); const c = D.chars.find(x => x.id === +tr.dataset.id); if (c) openPanel(c); }
+  }
+});
+
+renderTiles();
+renderTable();
+</script>
+</body>
+</html>
