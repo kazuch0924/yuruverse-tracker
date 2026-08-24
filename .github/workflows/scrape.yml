@@ -2,8 +2,11 @@ name: daily-scrape
 
 on:
   schedule:
-    # 03:05 UTC = 12:05 JST（ランキングは毎日12時頃更新）
-    - cron: "5 3 * * *"
+    # ランキングは毎日12時頃更新。GitHubのcronは数分〜1時間遅れるため3回試行する
+    # (12:01 / 12:21 / 12:51 JST。値に変化がない回はコミットしない)
+    - cron: "1 3 * * *"
+    - cron: "21 3 * * *"
+    - cron: "51 3 * * *"
   workflow_dispatch:
 
 permissions:
