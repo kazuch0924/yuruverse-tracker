@@ -17,7 +17,7 @@ jobs:
   scrape:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # ゆるバース2026は10/3-4の決選投票で終了。最終結果の反映を見込んで 10/15 まで動かし、以降は自動停止する
       - name: Check end date
