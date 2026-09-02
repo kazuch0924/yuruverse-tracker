@@ -3,3 +3,4 @@ docs/_test.html
 __pycache__/
 .DS_Store
 exports/
+.claude/

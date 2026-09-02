@@ -108,6 +108,41 @@ h1 .crown { color: var(--gold); }
 .tile .sub { font-size: 0.78rem; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tile .sub .pos { color: var(--up); font-weight: 700; }
 
+/* ---- ランニング企画（1PT = 1m） ---- */
+.runcard { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px 16px; margin: 0 0 20px; }
+.runcard h2 {
+  font-family: "M PLUS Rounded 1c", "Hiragino Maru Gothic ProN", system-ui, sans-serif;
+  font-weight: 800; font-size: 1.02rem; margin: 0;
+  display: flex; align-items: baseline; gap: 4px 10px; flex-wrap: wrap;
+}
+.runcard h2 .who { font-family: inherit; font-size: 0.78rem; font-weight: 500; color: var(--ink-2); }
+.runhero { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0 0; }
+.runhero > div { flex: 1 1 200px; background: var(--accent-soft); border-radius: 12px; padding: 10px 14px 11px; }
+.runhero .lbl { font-size: 0.7rem; letter-spacing: 0.07em; color: var(--muted); }
+.runhero .big {
+  font-family: "M PLUS Rounded 1c", system-ui, sans-serif; font-weight: 800;
+  font-size: 1.85rem; line-height: 1.2; font-variant-numeric: tabular-nums; color: var(--accent);
+}
+.runhero .big .u { font-size: 0.9rem; margin-left: 3px; }
+.runhero .sub { font-size: 0.8rem; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.runnote { font-size: 0.76rem; color: var(--muted); margin: 10px 0 0; line-height: 1.6; }
+.runweeks { margin-top: 16px; }
+.runweeks h3 { font-size: 0.76rem; font-weight: 600; color: var(--ink-2); letter-spacing: 0.05em; margin: 0 0 6px; }
+.wrow {
+  display: grid; grid-template-columns: 108px 90px 66px 1fr; gap: 4px 10px;
+  align-items: center; padding: 4px 0; border-top: 1px solid var(--grid);
+}
+.wrow:first-of-type { border-top: 0; }
+.wrow .per { font-size: 0.8rem; color: var(--ink-2); white-space: nowrap; }
+.wrow .m { font-weight: 700; font-size: 0.9rem; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.wrow .m .u { font-size: 0.72rem; font-weight: 500; color: var(--muted); margin-left: 2px; }
+.wrow .k { font-size: 0.8rem; color: var(--ink-2); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.wrow .barwrap { display: flex; align-items: center; min-width: 0; }
+.wrow .bar { height: 10px; border-radius: 5px; background: var(--accent); min-width: 3px; }
+.wrow.now .bar { opacity: 0.42; }
+.wrow.now .per, .wrow.now .m, .wrow.now .k { color: var(--ink-2); }
+.wrow.now .m { font-weight: 700; }
+
 .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 12px; }
 .controls input[type="search"] {
   flex: 1 1 220px; min-width: 180px;
@@ -210,6 +245,9 @@ td.spark svg { display: block; }
 @media (max-width: 640px) {
   h1 { font-size: 1.35rem; }
   .tiles { grid-template-columns: repeat(2, 1fr); }
+  .wrow { grid-template-columns: 1fr auto auto; }
+  .wrow .barwrap { grid-column: 1 / -1; }
+  .runhero .big { font-size: 1.6rem; }
 }
 @media (prefers-reduced-motion: no-preference) {
   .panel.open { animation: slidein 0.18s ease-out; }
@@ -225,6 +263,8 @@ td.spark svg { display: block; }
   </header>
 
   <section class="tiles" id="tiles"></section>
+
+  <section class="runcard" id="runcard" hidden aria-label="ランニング企画"></section>
 
   <div class="controls">
     <input id="q" type="search" placeholder="キャラ名・所属・都道府県で検索" aria-label="検索">
@@ -322,6 +362,101 @@ function renderTiles() {
   document.getElementById("tiles").innerHTML = tiles.map(t =>
     `<div class="tile"><div class="lbl">${t.lbl}</div><div class="val">${t.val}</div><div class="sub">${t.sub || ""}</div></div>`
   ).join("");
+}
+
+// ---- ランニング企画（金曜→金曜の獲得PT = 走る距離。1PT = 1m）----
+const RUNNER_ID = 4345; // さかいさんだー
+const dow = ds => { const [y, m, d] = ds.split("-").map(Number); return new Date(y, m - 1, d).getDay(); };
+const addDays = (ds, n) => {
+  const [y, m, d] = ds.split("-").map(Number);
+  const t = new Date(y, m - 1, d + n);
+  return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
+};
+const km = m => (m / 1000).toFixed(2);
+
+// 金曜のスナップショットを基準に週ごとの獲得PTを出す。初週は記録開始からの累計。
+function weeklyRuns(c) {
+  const fri = [];
+  DATES.forEach((d, i) => { if (dow(d) === 5 && c.pts[i] != null) fri.push({ d, i, p: c.pts[i] }); });
+  const weeks = fri.map((f, k) => ({
+    from: k ? fri[k - 1].d : null,
+    to: f.d,
+    dist: k ? f.p - fri[k - 1].p : f.p,
+  }));
+  let li = LAST;
+  while (li >= 0 && c.pts[li] == null) li--;
+  let ongoing = null;
+  if (li >= 0) {
+    const base = fri.length ? fri[fri.length - 1] : null;
+    if (!base || li > base.i) {
+      ongoing = {
+        from: base ? base.d : null,
+        basePts: base ? base.p : 0,
+        asOf: DATES[li],
+        dist: c.pts[li] - (base ? base.p : 0),
+      };
+    }
+  }
+  return { weeks, ongoing, total: weeks.reduce((s, w) => s + w.dist, 0) };
+}
+
+function renderRun() {
+  const c = D.chars.find(x => x.id === RUNNER_ID);
+  const el = document.getElementById("runcard");
+  if (!c) return;
+  const r = weeklyRuns(c);
+  if (!r.weeks.length && !r.ongoing) return;
+
+  const max = Math.max(1, ...r.weeks.map(w => w.dist), r.ongoing ? r.ongoing.dist : 0);
+  const row = (label, dist, cls) => `
+    <div class="wrow${cls ? " " + cls : ""}">
+      <span class="per">${label}</span>
+      <span class="m">${fmt(dist)}<span class="u">m</span></span>
+      <span class="k">${km(dist)} km</span>
+      <span class="barwrap"><span class="bar" style="width:${Math.max(1.5, (dist / max) * 100).toFixed(1)}%"></span></span>
+    </div>`;
+
+  const rows = r.weeks.map(w =>
+    row(w.from ? `${fmtDate(w.from)} → ${fmtDate(w.to)}` : `開始 → ${fmtDate(w.to)}`, w.dist)
+  );
+  let heroOngoing;
+  if (r.ongoing) {
+    let nf = r.ongoing.asOf;
+    do { nf = addDays(nf, 1); } while (dow(nf) !== 5);
+    rows.push(row(`${r.ongoing.from ? fmtDate(r.ongoing.from) + " → " : ""}${fmtDate(r.ongoing.asOf)} 時点`, r.ongoing.dist, "now"));
+    heroOngoing = {
+      lbl: "今週ここまで（暫定）",
+      big: fmt(r.ongoing.dist),
+      sub: `= ${km(r.ongoing.dist)} km ／ ${fmtDate(nf)}(金) に確定`,
+    };
+  } else {
+    const lastW = r.weeks[r.weeks.length - 1];
+    heroOngoing = {
+      lbl: "今週の確定距離",
+      big: fmt(lastW.dist),
+      sub: `= ${km(lastW.dist)} km ／ ${fmtDate(lastW.to)}(金) 確定`,
+    };
+  }
+  const hero = [
+    heroOngoing,
+    { lbl: "これまでの合計", big: fmt(r.total), sub: `= ${km(r.total)} km ／ 確定 ${r.weeks.length} 週分` },
+  ];
+
+  const note = r.ongoing
+    ? `${fmtDate(r.ongoing.from || DATES[0])}(金)時点の ${fmt(r.ongoing.basePts)} PT を基準に、${fmtDate(r.ongoing.asOf)}時点で <strong>+${fmt(r.ongoing.dist)} PT</strong>。`
+    : "";
+
+  el.innerHTML = `
+    <h2>🏃 ランニング企画<span class="who">${c.n}｜1PT = 1m を毎週走る（金曜→金曜の獲得ポイント）</span></h2>
+    <div class="runhero">
+      ${hero.map(h => `<div><div class="lbl">${h.lbl}</div><div class="big">${h.big}<span class="u">m</span></div><div class="sub">${h.sub}</div></div>`).join("")}
+    </div>
+    <p class="runnote">${note}金曜のポイントは前日までの投票が反映された値なので、金曜どうしの差＝ちょうど1週間分の得票です。</p>
+    <div class="runweeks">
+      <h3>週ごとの走行距離</h3>
+      ${rows.join("")}
+    </div>`;
+  el.hidden = false;
 }
 
 // ---- スパークライン (直近10回の累計PT) ----
@@ -602,6 +737,7 @@ document.getElementById("tbody").addEventListener("keydown", e => {
 });
 
 renderTiles();
+renderRun();
 renderTable();
 </script>
 </body>
