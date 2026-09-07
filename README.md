@@ -31,18 +31,25 @@ snapshots(date, character_id, rank, points)   -- 1日1行/キャラ
 
 同日に再実行するとその日のスナップショットが上書きされる（重複しない）。
 
-## 運用（2026-08-23 から）
+## 運用（2026-09-07 からハイブリッド）
 
-- **毎日の収集は GitHub Actions**（12:05 JST）が行い、`main` にコミットする
 - **公開ページ**: https://kazuch0924.github.io/yuruverse-tracker/ （GitHub Pages、`main` の `/docs` を配信）
-- ローカルの launchd は二重取得を避けるため停止済み。ローカルで最新データが欲しいときは `git pull`
-- 手動で今すぐ収集したいときは Actions の `daily-scrape` を Run workflow、またはローカルで `./run_daily.sh` して push
+- **Mac 側（launchd）**: 12:03 / 12:18 / 12:33 / 12:48 / 13:30 に `run_daily.sh` を実行。Mac が起きていればこれで正午すぎに即反映される
+- **GitHub Actions**: 12:07〜19:22 に8回予約（フォールバック）。GitHub の無料スケジューラは慢性的に4〜5時間遅れるため、実際の実行は夕方になる。Mac が閉じていた日はこちらが拾う
+- 両者が衝突しない仕組み:
+  - `scrape.py` は正午前（12:30 JST 前）に取得した値が前回保存分と完全一致なら「未更新」として保存しない
+  - 取得日付は常に日本時間で決める（Actions の実行環境は UTC のため）
+  - コミットは `docs/index.html` に差分があるときだけ。同じデータを二度保存しても何も起きない
+  - `run_daily.sh` は先に `git pull --rebase` し、push が競合したら取り込み直して再試行
+- 手動で今すぐ収集したいときは `./run_daily.sh`、または Actions の `daily-scrape` を Run workflow
 
-### ローカル自動実行に戻す場合（launchd）
+### launchd の登録・解除
 
 ```bash
 cp launchd/com.kazu.yuruverse-tracker.plist ~/Library/LaunchAgents/ && launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.kazu.yuruverse-tracker.plist
 ```
+
+解除は `launchctl bootout gui/$(id -u)/com.kazu.yuruverse-tracker`。Mac がスリープ中に時刻を過ぎた場合は復帰時に実行される。
 
 解除は `launchctl bootout gui/$(id -u)/com.kazu.yuruverse-tracker`。両方動かすと push が競合するのでどちらか一方にすること。
 

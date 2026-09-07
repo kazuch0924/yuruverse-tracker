@@ -48,17 +48,52 @@ def parse_page(html: str):
         }
 
 
-def scrape_all():
+JST = datetime.timezone(datetime.timedelta(hours=9))
+# サイトの更新は正午頃。これより前に取得した値が「前回保存分と完全一致」なら未更新とみなして保存しない
+GUARD_UNTIL = datetime.time(12, 30)
+
+
+def now_jst() -> datetime.datetime:
+    return datetime.datetime.now(JST)
+
+
+def fetch_range(rr: str):
+    html = fetch(f"{BASE}/vote/{YEAR}?rank_range={rr}")
+    chars = list(parse_page(html))
+    print(f"  {rr.replace('%2B', '+')}: {len(chars)} 件", file=sys.stderr)
+    return chars
+
+
+def looks_stale(first_page, today: str) -> bool:
+    """1ページ目の全キャラが、今日より前の最新スナップショットと同じポイントなら「サイト未更新」と判断する。"""
+    if not first_page or not DB_PATH.exists():
+        return False
+    con = sqlite3.connect(DB_PATH)
+    try:
+        row = con.execute("SELECT MAX(date) FROM snapshots WHERE date < ?", (today,)).fetchone()
+        if not row or not row[0]:
+            return False
+        prev_date = row[0]
+        prev = dict(con.execute("SELECT character_id, points FROM snapshots WHERE date = ?", (prev_date,)).fetchall())
+    finally:
+        con.close()
+    if len(prev) < len(first_page):
+        return False  # 前回分が部分データ(手入力など)なら比較しない
+    return all(prev.get(c["id"]) == c["points"] for c in first_page)
+
+
+def scrape_all(today: str, guard: bool):
     chars = {}
-    for rr in RANK_RANGES:
-        url = f"{BASE}/vote/{YEAR}?rank_range={rr}"
-        html = fetch(url)
-        n = 0
-        for c in parse_page(html):
-            chars[c["id"]] = c
-            n += 1
-        print(f"  {rr.replace('%2B', '+')}: {n} 件", file=sys.stderr)
+    first = fetch_range(RANK_RANGES[0])
+    if guard and now_jst().time() < GUARD_UNTIL and looks_stale(first, today):
+        print(f"サイト未更新（{now_jst():%H:%M} JST・前回保存分と同一）のため保存しません", file=sys.stderr)
+        return None
+    for c in first:
+        chars[c["id"]] = c
+    for rr in RANK_RANGES[1:]:
         time.sleep(1.5)  # サイトに負荷をかけない
+        for c in fetch_range(rr):
+            chars[c["id"]] = c
     return list(chars.values())
 
 
@@ -119,11 +154,15 @@ def save(chars, date: str):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--date", default=datetime.date.today().isoformat())
+    # 日付は必ず日本時間で決める（GitHub Actions の実行環境は UTC なので date.today() だと深夜にずれる）
+    ap.add_argument("--date", default=now_jst().date().isoformat())
+    ap.add_argument("--no-guard", action="store_true", help="正午前の未更新ガードを無効にして必ず保存する")
     args = ap.parse_args()
 
-    print(f"取得開始: {args.date}", file=sys.stderr)
-    chars = scrape_all()
+    print(f"取得開始: {args.date} ({now_jst():%H:%M} JST)", file=sys.stderr)
+    chars = scrape_all(args.date, guard=not args.no_guard)
+    if chars is None:
+        sys.exit(0)  # 未更新スキップ。後段の build_site は差分なしになり、コミットも発生しない
     if len(chars) < 100:
         print(f"エラー: 取得件数が少なすぎます ({len(chars)} 件)。サイト構造が変わった可能性。", file=sys.stderr)
         sys.exit(1)

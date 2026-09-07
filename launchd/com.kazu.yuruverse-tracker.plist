@@ -9,13 +9,15 @@
     <string>/bin/zsh</string>
     <string>/Users/kazu/Cowork/yuruverse-tracker/run_daily.sh</string>
   </array>
+  <!-- サイトは正午頃更新。少し遅れる日に備えて複数回試行する（未更新・変化なしの回は何もしない） -->
   <key>StartCalendarInterval</key>
-  <dict>
-    <key>Hour</key>
-    <integer>12</integer>
-    <key>Minute</key>
-    <integer>5</integer>
-  </dict>
+  <array>
+    <dict><key>Hour</key><integer>12</integer><key>Minute</key><integer>3</integer></dict>
+    <dict><key>Hour</key><integer>12</integer><key>Minute</key><integer>18</integer></dict>
+    <dict><key>Hour</key><integer>12</integer><key>Minute</key><integer>33</integer></dict>
+    <dict><key>Hour</key><integer>12</integer><key>Minute</key><integer>48</integer></dict>
+    <dict><key>Hour</key><integer>13</integer><key>Minute</key><integer>30</integer></dict>
+  </array>
   <key>StandardOutPath</key>
   <string>/Users/kazu/Cowork/yuruverse-tracker/data/cron.log</string>
   <key>StandardErrorPath</key>
