@@ -4,8 +4,11 @@
 <dict>
   <key>Label</key>
   <string>com.kazu.yuruverse-tracker</string>
+  <!-- caffeinate -i: 実行中（20秒ほど）はアイドルスリープに入らないようにする -->
   <key>ProgramArguments</key>
   <array>
+    <string>/usr/bin/caffeinate</string>
+    <string>-i</string>
     <string>/bin/zsh</string>
     <string>/Users/kazu/Cowork/yuruverse-tracker/run_daily.sh</string>
   </array>

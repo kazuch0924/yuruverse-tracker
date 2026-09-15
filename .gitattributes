@@ -1,0 +1,5 @@
+# 日次データは取得し直せば再生成できるので、git に3方向マージさせない。
+# rebase/merge で衝突しそうなときは常に上流（origin/main）側を採用し、その後に再取得して差分があれば改めてコミットする。
+# 動作には `git config merge.keepupstream.driver true` が必要（run_daily.sh と scrape.yml が設定する）
+data/yuruverse.sqlite merge=keepupstream
+docs/index.html      merge=keepupstream
