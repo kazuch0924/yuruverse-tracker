@@ -49,12 +49,23 @@ def parse_page(html: str):
 
 
 JST = datetime.timezone(datetime.timedelta(hours=9))
-# サイトの更新は正午頃。これより前に取得した値が「前回保存分と完全一致」なら未更新とみなして保存しない
+# サイトの更新は正午頃。12:00〜12:30 に取得した値が「前回保存分と完全一致」なら未更新とみなして保存しない
+# （正午前は snapshot_date() が前日扱いにするのでガード不要）
+GUARD_FROM = datetime.time(12, 0)
 GUARD_UNTIL = datetime.time(12, 30)
 
 
 def now_jst() -> datetime.datetime:
     return datetime.datetime.now(JST)
+
+
+def snapshot_date() -> str:
+    """サイトの更新サイクルに合わせた保存日付。
+    正午前はサイトがまだ「前日の状態」なので前日として保存する（遅延した予約実行が
+    朝方に走っても、今日の日付に前日の値を書いてしまわない。前日分が既にあれば同値の上書きで無変化）。"""
+    now = now_jst()
+    d = now.date() if now.time() >= datetime.time(12, 0) else now.date() - datetime.timedelta(days=1)
+    return d.isoformat()
 
 
 def fetch_range(rr: str):
@@ -85,7 +96,7 @@ def looks_stale(first_page, today: str) -> bool:
 def scrape_all(today: str, guard: bool):
     chars = {}
     first = fetch_range(RANK_RANGES[0])
-    if guard and now_jst().time() < GUARD_UNTIL and looks_stale(first, today):
+    if guard and GUARD_FROM <= now_jst().time() < GUARD_UNTIL and looks_stale(first, today):
         print(f"サイト未更新（{now_jst():%H:%M} JST・前回保存分と同一）のため保存しません", file=sys.stderr)
         return None
     for c in first:
@@ -155,7 +166,7 @@ def save(chars, date: str):
 def main():
     ap = argparse.ArgumentParser()
     # 日付は必ず日本時間で決める（GitHub Actions の実行環境は UTC なので date.today() だと深夜にずれる）
-    ap.add_argument("--date", default=now_jst().date().isoformat())
+    ap.add_argument("--date", default=snapshot_date())
     ap.add_argument("--no-guard", action="store_true", help="正午前の未更新ガードを無効にして必ず保存する")
     args = ap.parse_args()
 

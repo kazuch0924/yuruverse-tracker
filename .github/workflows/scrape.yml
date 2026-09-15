@@ -2,17 +2,30 @@ name: daily-scrape
 
 on:
   schedule:
-    # ランキングは毎日12時頃更新。GitHubのcronは混雑時に数十分〜数時間遅れる/取りこぼすため、
-    # 12時台〜夕方まで何度も試行する。データに変化がない回はコミットしないので無駄は出ない。
-    # (JST 12:07 / 12:22 / 12:37 / 12:52 / 13:22 / 14:22 / 16:22 / 19:22)
-    - cron: "7 3 * * *"
-    - cron: "22 3 * * *"
-    - cron: "37 3 * * *"
-    - cron: "52 3 * * *"
-    - cron: "22 4 * * *"
+    # ランキングは毎日12時頃(JST)更新。GitHub の無料スケジューラは実測で毎日 1〜11 時間（通常 4〜5 時間）遅れ、
+    # しかも同じ日の遅れ幅はほぼ一定なので、朝 6 時から正午まで 15 分刻みで予約しておくと、
+    # 遅れて着弾した結果「正午すぎ」に走る回が必ずどこかにできる。
+    # 正午前に走った回はサイト未更新なので何もせず終わる（scrape.py の日付ロジックとガード）。
+    # 各回 25 秒程度・公開リポジトリは無料なのでコストはない。
+    # --- 早朝（大きく遅れる日の保険）JST 01:37 / 03:37 / 05:07 ---
+    - cron: "37 16 * * *"
+    - cron: "37 18 * * *"
+    - cron: "7 20 * * *"
+    # --- JST 06:07〜11:52 を 15 分刻み（UTC 21:07〜02:52）---
+    - cron: "7,22,37,52 21 * * *"
+    - cron: "7,22,37,52 22 * * *"
+    - cron: "7,22,37,52 23 * * *"
+    - cron: "7,22,37,52 0 * * *"
+    - cron: "7,22,37,52 1 * * *"
+    - cron: "7,22,37,52 2 * * *"
+    # --- JST 12:07〜13:52 を 15 分刻み（遅れが小さい日用）---
+    - cron: "7,22,37,52 3 * * *"
+    - cron: "7,22,37,52 4 * * *"
+    # --- 午後〜夜の保険 JST 14:22 / 16:22 / 19:22 / 22:22 ---
     - cron: "22 5 * * *"
     - cron: "22 7 * * *"
     - cron: "22 10 * * *"
+    - cron: "22 13 * * *"
   workflow_dispatch:
 
 permissions:
@@ -50,11 +63,21 @@ jobs:
         run: |
           git config user.name "yuruverse-bot"
           git config user.email "actions@users.noreply.github.com"
-          # SQLite は書き込むたびにヘッダが変わるので、実データが変わったかは生成HTMLで判定する
-          if git diff --quiet -- docs/index.html; then
-            echo "データに変化なし（既に最新）。コミットをスキップします"
-            exit 0
-          fi
-          git add data/yuruverse.sqlite docs/index.html
-          git commit -m "data: $(TZ=Asia/Tokyo date '+%Y-%m-%d') snapshot"
+          commit_if_changed() {
+            # SQLite は書き込むたびにヘッダが変わるので、実データが変わったかは生成HTMLで判定する
+            if git diff --quiet -- docs/index.html; then
+              echo "データに変化なし（既に最新）"
+              return 1
+            fi
+            git add data/yuruverse.sqlite docs/index.html
+            git commit -m "data: $(TZ=Asia/Tokyo date '+%Y-%m-%d') snapshot"
+          }
+          commit_if_changed || exit 0
+          git push && exit 0
+          # Mac 側が先に push していた場合: データ2ファイルは再生成できるので上流に合わせてから取り直し、差分があれば再コミット
+          echo "push が拒否されたため上流に合わせて取り直します"
+          git fetch origin main
+          git reset --hard origin/main
+          python3 scrape.py && python3 build_site.py
+          commit_if_changed || { echo "上流が既に最新のため push 不要"; exit 0; }
           git push
