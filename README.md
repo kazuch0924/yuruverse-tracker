@@ -31,6 +31,16 @@ snapshots(date, character_id, rank, points)   -- 1日1行/キャラ
 
 同日に再実行するとその日のスナップショットが上書きされる（重複しない）。
 
+## 状態: 記録終了（2026-09-30 分まで）
+
+決選投票（10/3・4）を前に公式サイトのポイント表示が `??? PT` になり取得不能となったため、2026-10-01 に自動収集を停止した。
+
+- GitHub Actions の `daily-scrape` は `gh workflow disable daily-scrape` で無効化済み（再開は `gh workflow enable daily-scrape`）
+- Mac の launchd エージェントは `launchctl bootout` 済み、`~/Library/LaunchAgents/` からも削除済み
+- 公開ページとデータはそのまま残る（2026年の全記録アーカイブとして閲覧可）
+
+以下は稼働していた当時の運用メモ。
+
 ## 運用（2026-09-07 からハイブリッド）
 
 - **公開ページ**: https://kazuch0924.github.io/yuruverse-tracker/ （GitHub Pages、`main` の `/docs` を配信）
