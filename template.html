@@ -304,7 +304,7 @@ td.spark svg { display: block; }
   </div>
 
   <div class="note">
-    <p><strong>※ 記録は 2026年9月30日で終了しました。</strong>決選投票（10月3・4日）を前に公式サイトのポイント表示が非公開（??? PT）になったため、以降のデータは取得できません。最終順位は「ゆるナビ投票」「ふるさと応援投票」「決選投票」の合算で決定されます。以下は記録終了時点の内容です。</p>
+    <p><strong>※ ゆるバース2026は終了しました。最終日の行（10月13日）は決選投票（10月3・4日）を含む最終結果です。</strong>9月30日〜10月13日は公式サイトがポイントを非公開（??? PT）にしていたため記録がなく、「前回比」にはその期間の増分がまとめて入っています。</p>
     <p>※ 本サイトはゆるバース公式とは無関係の非公式トラッカーです。データは yurugp.jp の公表ランキングを1日1回記録したものです。</p>
     <p>※ ゆるナビ投票は平日の正午頃に前日分まで反映、ふるさと応援投票は毎週月曜に反映されるため、「前回比」は前回記録時点との差分です（月曜は合算分が大きく出ます）。</p>
     <p>※ 順位の変動・獲得ポイントは記録開始日以降のデータから算出しています。</p>
@@ -367,6 +367,9 @@ function renderTiles() {
 
 // ---- ランニング企画（金曜→金曜の獲得PT = 走る距離。1PT = 1m）----
 const RUNNER_ID = 4345; // さかいさんだー
+// ゆるバース2026 の最終結果を取り込んだ日（この日のデータが入ったら大会終了として表示する）
+const FINAL_DATE = "2026-10-13";
+const FINISHED = DATES[LAST] === FINAL_DATE;
 const dow = ds => { const [y, m, d] = ds.split("-").map(Number); return new Date(y, m - 1, d).getDay(); };
 const addDays = (ds, n) => {
   const [y, m, d] = ds.split("-").map(Number);
@@ -421,7 +424,15 @@ function renderRun() {
     row(w.from ? `${fmtDate(w.from)} → ${fmtDate(w.to)}` : `開始 → ${fmtDate(w.to)}`, w.dist)
   );
   let heroOngoing;
-  if (r.ongoing) {
+  if (r.ongoing && FINISHED) {
+    // 大会終了: 最後の金曜以降（ポイント非公開期間＋決選投票）をまとめて1行にする
+    rows.push(row(`${fmtDate(r.ongoing.from)} → 最終`, r.ongoing.dist, "now"));
+    heroOngoing = {
+      lbl: "最終集計分（最後の金曜以降）",
+      big: fmt(r.ongoing.dist),
+      sub: `= ${km(r.ongoing.dist)} km ／ 決選投票を含む`,
+    };
+  } else if (r.ongoing) {
     let nf = r.ongoing.asOf;
     do { nf = addDays(nf, 1); } while (dow(nf) !== 5);
     rows.push(row(`${r.ongoing.from ? fmtDate(r.ongoing.from) + " → " : ""}${fmtDate(r.ongoing.asOf)} 時点`, r.ongoing.dist, "now"));
@@ -438,21 +449,23 @@ function renderRun() {
       sub: `= ${km(lastW.dist)} km ／ ${fmtDate(lastW.to)}(金) 確定`,
     };
   }
-  const hero = [
-    heroOngoing,
-    { lbl: "これまでの合計", big: fmt(r.total), sub: `= ${km(r.total)} km ／ 確定 ${r.weeks.length} 週分` },
-  ];
+  const grand = r.total + (r.ongoing ? r.ongoing.dist : 0);
+  const hero = FINISHED
+    ? [heroOngoing, { lbl: "総距離（全期間）", big: fmt(grand), sub: `= ${km(grand)} km ／ 確定 ${r.weeks.length} 週 ＋ 最終集計分` }]
+    : [heroOngoing, { lbl: "これまでの合計", big: fmt(r.total), sub: `= ${km(r.total)} km ／ 確定 ${r.weeks.length} 週分` }];
 
-  const note = r.ongoing
-    ? `${fmtDate(r.ongoing.from || DATES[0])}(金)時点の ${fmt(r.ongoing.basePts)} PT を基準に、${fmtDate(r.ongoing.asOf)}時点で <strong>+${fmt(r.ongoing.dist)} PT</strong>。`
-    : "";
+  const note = FINISHED
+    ? `最後に記録できた金曜 ${fmtDate(r.ongoing.from)} 以降は公式サイトがポイントを非公開にしていたため、その期間と決選投票の増分をまとめて「最終集計分」としています。`
+    : r.ongoing
+      ? `${fmtDate(r.ongoing.from || DATES[0])}(金)時点の ${fmt(r.ongoing.basePts)} PT を基準に、${fmtDate(r.ongoing.asOf)}時点で <strong>+${fmt(r.ongoing.dist)} PT</strong>。`
+      : "";
 
   el.innerHTML = `
     <h2>🏃 ランニング企画<span class="who">${c.n}｜1PT = 1m を毎週走る（金曜→金曜の獲得ポイント）</span></h2>
     <div class="runhero">
       ${hero.map(h => `<div><div class="lbl">${h.lbl}</div><div class="big">${h.big}<span class="u">m</span></div><div class="sub">${h.sub}</div></div>`).join("")}
     </div>
-    <p class="runnote">${note}金曜のポイントは前日までの投票が反映された値なので、金曜どうしの差＝ちょうど1週間分の得票です。</p>
+    <p class="runnote">${note}${FINISHED ? "" : "金曜のポイントは前日までの投票が反映された値なので、金曜どうしの差＝ちょうど1週間分の得票です。"}</p>
     <div class="runweeks">
       <h3>週ごとの走行距離</h3>
       ${rows.join("")}
